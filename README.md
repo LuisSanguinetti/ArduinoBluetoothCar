@@ -10,6 +10,7 @@ well no its electric but you get the gist of it
 2. create an ai model to train it in my computer    
     * download a less complex model to the arduino and let it drive
     * download the more complex model to the computer and cnnedct it with the bluetooth drving system thus allowing for a "smarter" car without the limitations of the ardduino memory
+3. add the agent to the computer or the bluetooth commands 
 
 
 # 🤖 Robot Car Bluetooth Control Setup Guide
