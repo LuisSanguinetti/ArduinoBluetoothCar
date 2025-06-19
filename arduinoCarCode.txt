@@ -1,0 +1,273 @@
+// Arduino Bluetooth Control Code for 4WD Smart Robot Car
+// This code receives commands via Bluetooth and controls the robot accordingly
+
+#include <Servo.h>
+
+// Servo and Ultrasonic pins
+#define SERVO_PIN 10
+#define TRIG_PIN 3
+#define ECHO_PIN 11
+Servo myServo;
+
+// Motor pins
+#define ENA 5    // PWM speed control for right motor
+#define ENB 6    // PWM speed control for left motor
+#define IN1 2    // Right motor direction control
+#define IN2 4
+#define IN3 7    // Left motor direction control
+#define IN4 8
+
+// Speed constants
+#define MAX_SPEED 255
+#define NORMAL_SPEED 200
+#define TURN_SPEED 150
+#define MIN_SPEED 100
+
+// Global variables
+int currentSpeed = NORMAL_SPEED;
+int servoAngle = 90;
+char incomingByte;
+unsigned long lastCommandTime = 0;
+const unsigned long TIMEOUT = 500; // Stop if no command for 500ms
+
+void setup() {
+  Serial.begin(9600); // HC-06 default baud rate
+  
+  // Initialize motor pins
+  pinMode(ENA, OUTPUT);
+  pinMode(ENB, OUTPUT);
+  pinMode(IN1, OUTPUT);
+  pinMode(IN2, OUTPUT);
+  pinMode(IN3, OUTPUT);
+  pinMode(IN4, OUTPUT);
+  
+  // Initialize ultrasonic pins
+  pinMode(TRIG_PIN, OUTPUT);
+  pinMode(ECHO_PIN, INPUT);
+  
+  // Initialize servo
+  myServo.attach(SERVO_PIN);
+  myServo.write(90); // Center position
+  
+  // Stop motors initially
+  stopMotors();
+  
+  Serial.println("Robot Ready! Waiting for commands...");
+}
+
+void loop() {
+  // Check for incoming serial data
+  if (Serial.available() > 0) {
+    incomingByte = Serial.read();
+    lastCommandTime = millis();
+    processCommand(incomingByte);
+  }
+  
+  // Safety feature: stop if no command received recently
+  if (millis() - lastCommandTime > TIMEOUT) {
+    stopMotors();
+  }
+  
+  // Send periodic status updates
+  static unsigned long lastStatusTime = 0;
+  if (millis() - lastStatusTime > 100) { // Every 100ms
+    sendStatus();
+    lastStatusTime = millis();
+  }
+}
+
+// Process incoming commands
+void processCommand(char cmd) {
+  switch(cmd) {
+    // Movement commands
+    case 'W': // Forward
+    case 'w':
+      moveForward(currentSpeed);
+      break;
+      
+    case 'S': // Backward
+    case 's':
+      moveBackward(currentSpeed);
+      break;
+      
+    case 'A': // Turn left
+    case 'a':
+      turnLeft(TURN_SPEED);
+      break;
+      
+    case 'D': // Turn right
+    case 'd':
+      turnRight(TURN_SPEED);
+      break;
+      
+    case 'Q': // Rotate left (pivot)
+    case 'q':
+      rotateLeft(TURN_SPEED);
+      break;
+      
+    case 'E': // Rotate right (pivot)
+    case 'e':
+      rotateRight(TURN_SPEED);
+      break;
+      
+    case 'X': // Stop
+    case 'x':
+    case ' ': // Space bar also stops
+      stopMotors();
+      break;
+      
+    // Speed control
+    case '1': // Minimum speed
+      currentSpeed = MIN_SPEED;
+      break;
+    case '2':
+      currentSpeed = 150;
+      break;
+    case '3':
+      currentSpeed = NORMAL_SPEED;
+      break;
+    case '4':
+      currentSpeed = 230;
+      break;
+    case '5': // Maximum speed
+      currentSpeed = MAX_SPEED;
+      break;
+      
+    // Servo control
+    case 'L': // Look left
+    case 'l':
+      servoAngle = max(0, servoAngle - 30);
+      myServo.write(servoAngle);
+      break;
+      
+    case 'R': // Look right
+    case 'r':
+      servoAngle = min(180, servoAngle + 30);
+      myServo.write(servoAngle);
+      break;
+      
+    case 'C': // Center servo
+    case 'c':
+      servoAngle = 90;
+      myServo.write(servoAngle);
+      break;
+      
+    // Special actions
+    case 'H': // Honk (send back acknowledgment)
+    case 'h':
+      Serial.println("HONK!");
+      break;
+      
+    case 'M': // Measure distance
+    case 'm':
+      measureDistance();
+      break;
+  }
+}
+
+// Motor control functions
+void moveForward(int speed) {
+  // Right motor forward
+  digitalWrite(IN1, HIGH);
+  digitalWrite(IN2, LOW);
+  analogWrite(ENA, speed);
+  
+  // Left motor forward
+  digitalWrite(IN3, HIGH);
+  digitalWrite(IN4, LOW);
+  analogWrite(ENB, speed);
+}
+
+void moveBackward(int speed) {
+  // Right motor backward
+  digitalWrite(IN1, LOW);
+  digitalWrite(IN2, HIGH);
+  analogWrite(ENA, speed);
+  
+  // Left motor backward
+  digitalWrite(IN3, LOW);
+  digitalWrite(IN4, HIGH);
+  analogWrite(ENB, speed);
+}
+
+void turnLeft(int speed) {
+  // Right motor forward at full speed
+  digitalWrite(IN1, HIGH);
+  digitalWrite(IN2, LOW);
+  analogWrite(ENA, speed);
+  
+  // Left motor forward at reduced speed
+  digitalWrite(IN3, HIGH);
+  digitalWrite(IN4, LOW);
+  analogWrite(ENB, speed / 2);
+}
+
+void turnRight(int speed) {
+  // Right motor forward at reduced speed
+  digitalWrite(IN1, HIGH);
+  digitalWrite(IN2, LOW);
+  analogWrite(ENA, speed / 2);
+  
+  // Left motor forward at full speed
+  digitalWrite(IN3, HIGH);
+  digitalWrite(IN4, LOW);
+  analogWrite(ENB, speed);
+}
+
+void rotateLeft(int speed) {
+  // Right motor forward
+  digitalWrite(IN1, HIGH);
+  digitalWrite(IN2, LOW);
+  analogWrite(ENA, speed);
+  
+  // Left motor backward
+  digitalWrite(IN3, LOW);
+  digitalWrite(IN4, HIGH);
+  analogWrite(ENB, speed);
+}
+
+void rotateRight(int speed) {
+  // Right motor backward
+  digitalWrite(IN1, LOW);
+  digitalWrite(IN2, HIGH);
+  analogWrite(ENA, speed);
+  
+  // Left motor forward
+  digitalWrite(IN3, HIGH);
+  digitalWrite(IN4, LOW);
+  analogWrite(ENB, speed);
+}
+
+void stopMotors() {
+  digitalWrite(IN1, LOW);
+  digitalWrite(IN2, LOW);
+  digitalWrite(IN3, LOW);
+  digitalWrite(IN4, LOW);
+  analogWrite(ENA, 0);
+  analogWrite(ENB, 0);
+}
+
+// Measure distance with ultrasonic sensor
+void measureDistance() {
+  digitalWrite(TRIG_PIN, LOW);
+  delayMicroseconds(2);
+  digitalWrite(TRIG_PIN, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(TRIG_PIN, LOW);
+  
+  long duration = pulseIn(ECHO_PIN, HIGH, 30000); // 30ms timeout
+  long distance = duration * 0.034 / 2;
+  
+  // Send distance data
+  Serial.print("DIST:");
+  Serial.println(distance);
+}
+
+// Send status information
+void sendStatus() {
+  measureDistance(); // Always include distance
+  Serial.print("SPEED:");
+  Serial.println(currentSpeed);
+  Serial.print("SERVO:");
+  Serial.println(servoAngle);
+}
