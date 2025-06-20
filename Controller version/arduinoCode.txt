@@ -1,0 +1,203 @@
+// Direct PS5 Controller to Arduino Robot
+// REQUIRES: USB Host Shield 2.0 and PS5 controller library
+// Hardware needed: Arduino Uno + USB Host Shield
+
+#include <PS5USB.h>
+#include <Servo.h>
+
+// Initialize USB and PS5 controller
+USB Usb;
+PS5USB PS5(&Usb);
+
+// Pin definitions
+#define SERVO_PIN 10
+#define TRIG_PIN 3
+#define ECHO_PIN 11
+
+// Motor driver pins
+#define ENA 5
+#define ENB 6
+#define IN1 2
+#define IN2 4
+#define IN3 7
+#define IN4 8
+
+Servo myServo;
+
+// Control variables
+int servoAngle = 90;
+unsigned long lastUpdate = 0;
+
+void setup() {
+  Serial.begin(115200);
+  
+  // Initialize USB
+  if (Usb.Init() == -1) {
+    Serial.println("USB Host Shield not found!");
+    while (1); // Halt
+  }
+  
+  Serial.println("PS5 USB Library Started");
+  
+  // Initialize pins
+  pinMode(ENA, OUTPUT);
+  pinMode(ENB, OUTPUT);
+  pinMode(IN1, OUTPUT);
+  pinMode(IN2, OUTPUT);
+  pinMode(IN3, OUTPUT);
+  pinMode(IN4, OUTPUT);
+  pinMode(TRIG_PIN, OUTPUT);
+  pinMode(ECHO_PIN, INPUT);
+  
+  myServo.attach(SERVO_PIN);
+  myServo.write(90);
+  
+  stopMotors();
+}
+
+void loop() {
+  Usb.Task();
+  
+  if (PS5.connected()) {
+    // Read joystick values
+    int leftX = PS5.getAnalogHat(LeftHatX) - 128;  // Convert to -128 to 127
+    int leftY = -(PS5.getAnalogHat(LeftHatY) - 128);
+    int rightX = PS5.getAnalogHat(RightHatX) - 128;
+    
+    // Apply deadzone
+    if (abs(leftX) < 20) leftX = 0;
+    if (abs(leftY) < 20) leftY = 0;
+    if (abs(rightX) < 20) rightX = 0;
+    
+    // Calculate motor speeds
+    int forward = map(leftY, -128, 127, -255, 255);
+    int turn = map(leftX, -128, 127, -200, 200);
+    
+    int leftSpeed = constrain(forward + turn, -255, 255);
+    int rightSpeed = constrain(forward - turn, -255, 255);
+    
+    // Apply turbo with R2
+    if (PS5.getAnalogButton(R2) > 50) {
+      float boost = 1.0 + (PS5.getAnalogButton(R2) / 255.0);
+      leftSpeed *= boost;
+      rightSpeed *= boost;
+      leftSpeed = constrain(leftSpeed, -255, 255);
+      rightSpeed = constrain(rightSpeed, -255, 255);
+    }
+    
+    // Set motor speeds
+    setMotorSpeeds(leftSpeed, rightSpeed);
+    
+    // Servo control with right stick
+    if (abs(rightX) > 20) {
+      servoAngle = map(rightX, -128, 127, 0, 180);
+      myServo.write(servoAngle);
+    }
+    
+    // Handle buttons
+    if (PS5.getButtonClick(CROSS)) {
+      Serial.println("HONK!");
+    }
+    
+    if (PS5.getButtonClick(CIRCLE)) {
+      measureDistance();
+    }
+    
+    if (PS5.getButtonClick(TRIANGLE)) {
+      servoAngle = 90;
+      myServo.write(servoAngle);
+    }
+    
+    if (PS5.getButtonClick(SQUARE)) {
+      stopMotors();
+    }
+    
+    if (PS5.getButton(L1)) {
+      setMotorSpeeds(-200, 200);  // Spin left
+    }
+    
+    if (PS5.getButton(R1)) {
+      setMotorSpeeds(200, -200);  // Spin right
+    }
+    
+    // LED feedback
+    if (millis() - lastUpdate > 100) {
+      // Set controller LED color based on speed
+      int speed = abs(leftSpeed + rightSpeed) / 2;
+      if (speed > 200) {
+        PS5.setLed(255, 0, 0);  // Red for high speed
+      } else if (speed > 100) {
+        PS5.setLed(255, 255, 0);  // Yellow for medium
+      } else if (speed > 0) {
+        PS5.setLed(0, 255, 0);  // Green for low
+      } else {
+        PS5.setLed(0, 0, 255);  // Blue for stopped
+      }
+      lastUpdate = millis();
+    }
+    
+  } else {
+    // No controller connected
+    stopMotors();
+    if (millis() - lastUpdate > 1000) {
+      Serial.println("Waiting for PS5 controller...");
+      lastUpdate = millis();
+    }
+  }
+}
+
+void setMotorSpeeds(int leftSpeed, int rightSpeed) {
+  // Left motor
+  if (leftSpeed > 0) {
+    digitalWrite(IN3, HIGH);
+    digitalWrite(IN4, LOW);
+    analogWrite(ENB, abs(leftSpeed));
+  } else if (leftSpeed < 0) {
+    digitalWrite(IN3, LOW);
+    digitalWrite(IN4, HIGH);
+    analogWrite(ENB, abs(leftSpeed));
+  } else {
+    digitalWrite(IN3, LOW);
+    digitalWrite(IN4, LOW);
+    analogWrite(ENB, 0);
+  }
+  
+  // Right motor
+  if (rightSpeed > 0) {
+    digitalWrite(IN1, HIGH);
+    digitalWrite(IN2, LOW);
+    analogWrite(ENA, abs(rightSpeed));
+  } else if (rightSpeed < 0) {
+    digitalWrite(IN1, LOW);
+    digitalWrite(IN2, HIGH);
+    analogWrite(ENA, abs(rightSpeed));
+  } else {
+    digitalWrite(IN1, LOW);
+    digitalWrite(IN2, LOW);
+    analogWrite(ENA, 0);
+  }
+}
+
+void stopMotors() {
+  digitalWrite(IN1, LOW);
+  digitalWrite(IN2, LOW);
+  digitalWrite(IN3, LOW);
+  digitalWrite(IN4, LOW);
+  analogWrite(ENA, 0);
+  analogWrite(ENB, 0);
+}
+
+void measureDistance() {
+  digitalWrite(TRIG_PIN, LOW);
+  delayMicroseconds(2);
+  digitalWrite(TRIG_PIN, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(TRIG_PIN, LOW);
+  
+  long duration = pulseIn(ECHO_PIN, HIGH, 30000);
+  long distance = duration * 0.034 / 2;
+  
+  Serial.print("Distance: ");
+  Serial.print(distance);
+  Serial.println(" cm");
+}
