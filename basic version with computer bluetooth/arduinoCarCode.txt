@@ -90,23 +90,13 @@ void processCommand(char cmd) {
       moveBackward(currentSpeed);
       break;
       
-    case 'A': // Turn left
+    case 'A': // rotate left
     case 'a':
-      turnLeft(TURN_SPEED);
-      break;
-      
-    case 'D': // Turn right
-    case 'd':
-      turnRight(TURN_SPEED);
-      break;
-      
-    case 'Q': // Rotate left (pivot)
-    case 'q':
       rotateLeft(TURN_SPEED);
       break;
       
-    case 'E': // Rotate right (pivot)
-    case 'e':
+    case 'D': // rotate right
+    case 'd':
       rotateRight(TURN_SPEED);
       break;
       
@@ -187,30 +177,6 @@ void moveBackward(int speed) {
   // Left motor backward
   digitalWrite(IN3, LOW);
   digitalWrite(IN4, HIGH);
-  analogWrite(ENB, speed);
-}
-
-void turnLeft(int speed) {
-  // Right motor forward at full speed
-  digitalWrite(IN1, HIGH);
-  digitalWrite(IN2, LOW);
-  analogWrite(ENA, speed);
-  
-  // Left motor forward at reduced speed
-  digitalWrite(IN3, HIGH);
-  digitalWrite(IN4, LOW);
-  analogWrite(ENB, speed / 2);
-}
-
-void turnRight(int speed) {
-  // Right motor forward at reduced speed
-  digitalWrite(IN1, HIGH);
-  digitalWrite(IN2, LOW);
-  analogWrite(ENA, speed / 2);
-  
-  // Left motor forward at full speed
-  digitalWrite(IN3, HIGH);
-  digitalWrite(IN4, LOW);
   analogWrite(ENB, speed);
 }
 
