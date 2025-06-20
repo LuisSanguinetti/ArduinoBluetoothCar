@@ -29,6 +29,10 @@ int servoAngle = 90;
 char incomingByte;
 unsigned long lastCommandTime = 0;
 const unsigned long TIMEOUT = 500; // Stop if no command for 500ms
+// new ones
+unsigned long lastServoMove = 0;
+int servoDirection = 1; // 1 for right, -1 for left
+bool continuousScan = true;
 
 void setup() {
   Serial.begin(9600); // HC-06 default baud rate
@@ -231,9 +235,42 @@ void measureDistance() {
 
 // Send status information
 void sendStatus() {
-  measureDistance(); // Always include distance
-  Serial.print("SPEED:");
-  Serial.println(currentSpeed);
-  Serial.print("SERVO:");
-  Serial.println(servoAngle);
+  // Continuous servo scanning
+  if (continuousScan && millis() - lastServoMove > 50) { // Move every 50ms
+    servoAngle += (servoDirection * 5); // Move 5 degrees at a time
+    
+    if (servoAngle >= 150) {
+      servoAngle = 150;
+      servoDirection = -1;
+    } else if (servoAngle <= 30) {
+      servoAngle = 30;
+      servoDirection = 1;
+    }
+    
+    myServo.write(servoAngle);
+    lastServoMove = millis();
+  }
+  
+  // Measure and send distance with position
+  digitalWrite(TRIG_PIN, LOW);
+  delayMicroseconds(2);
+  digitalWrite(TRIG_PIN, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(TRIG_PIN, LOW);
+  
+  long duration = pulseIn(ECHO_PIN, HIGH, 30000);
+  long distance = duration * 0.034 / 2;
+  
+  // Send formatted distance with position
+  Serial.print("DIST:");
+  if (servoAngle < 60) {
+    Serial.print("L");
+  } else if (servoAngle > 120) {
+    Serial.print("R");
+  } else {
+    Serial.print("C");
+  }
+  Serial.print(servoAngle);
+  Serial.print(":");
+  Serial.println(distance);
 }

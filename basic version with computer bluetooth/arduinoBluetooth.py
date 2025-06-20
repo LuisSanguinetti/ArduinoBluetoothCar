@@ -120,7 +120,12 @@ class SimpleRobotController:
                 if self.serial_port.in_waiting:
                     line = self.serial_port.readline().decode('utf-8').strip()
                     if line.startswith("DIST:"):
-                        self.last_distance = int(line.split(":")[1])
+                        # Parse new format: DIST:L90:25
+                        parts = line.split(":")
+                        if len(parts) >= 3:
+                            position = parts[1]  # L90, C90, R120 etc
+                            distance = int(parts[2])
+                            self.last_distance = f"{position} {distance}cm"
             except:
                 pass
             time.sleep(0.01)
