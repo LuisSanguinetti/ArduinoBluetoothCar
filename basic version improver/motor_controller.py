@@ -30,7 +30,7 @@ except:
 class MotorController:
     """Core motor control interface - handles Arduino communication"""
     
-    def __init__(self, port=None, baudrate=115200):
+    def __init__(self, port=None, baudrate=9600):
         self.serial_port = None
         self.connected = False
         self.port = port
