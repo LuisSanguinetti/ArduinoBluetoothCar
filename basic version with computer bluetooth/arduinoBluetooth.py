@@ -146,8 +146,7 @@ class SimpleRobotController:
         print("\nCONTROLS:")
         print("├─ Movement:")
         print("│  W - Forward      S - Backward")
-        print("│  A - Turn Left    D - Turn Right")
-        print("│  Q - Rotate Left  E - Rotate Right")
+        print("│  A - Rotate Left    D - Rotate Right")
         print("│  Space - Stop")
         print("│")
         print("├─ Speed: 1-5 (Current: {})".format(self.current_speed))
@@ -200,15 +199,9 @@ class SimpleRobotController:
                     last_key = "Backward"
                 elif key == 'a':
                     self.send_command('A')
-                    last_key = "Turn Left"
+                    last_key = "Rotate Left"
                 elif key == 'd':
                     self.send_command('D')
-                    last_key = "Turn Right"
-                elif key == 'q':
-                    self.send_command('Q')
-                    last_key = "Rotate Left"
-                elif key == 'e':
-                    self.send_command('E')
                     last_key = "Rotate Right"
                 elif key == ' ':
                     self.send_command('X')
