@@ -237,16 +237,19 @@ void measureDistance() {
 void sendStatus() {
   // Continuous servo scanning
   if (continuousScan && millis() - lastServoMove > 50) { // Move every 50ms
-    servoAngle += (servoDirection * 5); // Move 5 degrees at a time
     
-    if (servoAngle >= 150) {
-      servoAngle = 150;
-      servoDirection = -1;
-    } else if (servoAngle <= 30) {
-      servoAngle = 30;
-      servoDirection = 1;
+    if (servoDirection == 1) { 
+      if (servoAngle == 30) servoAngle = 90;  
+      else if (servoAngle == 90) servoAngle = 150;
+      else servoDirection = -1;
     }
-    
+
+    if (servoDirection == -1) { 
+      if (servoAngle == 150) servoAngle = 90;  
+      else if (servoAngle == 90) servoAngle = 30;
+      else servoDirection = -1;
+    }
+
     myServo.write(servoAngle);
     lastServoMove = millis();
   }
