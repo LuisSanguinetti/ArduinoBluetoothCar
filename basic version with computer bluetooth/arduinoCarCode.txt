@@ -52,9 +52,11 @@ void setup() {
   // Initialize servo
   myServo.attach(SERVO_PIN);
   myServo.write(90); // Center position
+  continuousScan = true;
   
   // Stop motors initially
   stopMotors();
+
   
   Serial.println("Robot Ready! Waiting for commands...");
 }
@@ -128,6 +130,7 @@ void processCommand(char cmd) {
       break;
       
     // Servo control
+    /*
     case 'L': // Look left
     case 'l':
       servoAngle = max(0, servoAngle - 30);
@@ -156,6 +159,7 @@ void processCommand(char cmd) {
     case 'm':
       measureDistance();
       break;
+      */
   }
 }
 
@@ -233,47 +237,57 @@ void measureDistance() {
   Serial.println(distance);
 }
 
-// Send status information
 void sendStatus() {
-  // Continuous servo scanning
-  if (continuousScan && millis() - lastServoMove > 50) { // Move every 50ms
+  // Continuous servo scanning with proper state machine
+  static int scanState = 0; // 0=left, 1=center(from left), 2=right, 3=center(from right)
+  
+  if (continuousScan && millis() - lastServoMove > 500) { // Move every 500ms for stable readings
+    switch(scanState) {
+      case 0: // Move to left
+        servoAngle = 30;
+        scanState = 1;
+        break;
+      case 1: // Move to center (from left)
+        servoAngle = 90;
+        scanState = 2;
+        break;
+      case 2: // Move to right
+        servoAngle = 150;
+        scanState = 3;
+        break;
+      case 3: // Move to center (from right)
+        servoAngle = 90;
+        scanState = 0;
+        break;
+    }
     
-    if (servoDirection == 1) { 
-      if (servoAngle == 30) servoAngle = 90;  
-      else if (servoAngle == 90) servoAngle = 150;
-      else servoDirection = -1;
-    }
-
-    if (servoDirection == -1) { 
-      if (servoAngle == 150) servoAngle = 90;  
-      else if (servoAngle == 90) servoAngle = 30;
-      else servoDirection = -1;
-    }
-
     myServo.write(servoAngle);
     lastServoMove = millis();
+    
+    // Wait a bit for servo to reach position before measuring
+    delay(300);
+    
+    // Measure and send distance with position
+    digitalWrite(TRIG_PIN, LOW);
+    delayMicroseconds(2);
+    digitalWrite(TRIG_PIN, HIGH);
+    delayMicroseconds(10);
+    digitalWrite(TRIG_PIN, LOW);
+    
+    long duration = pulseIn(ECHO_PIN, HIGH, 30000);
+    long distance = duration * 0.034 / 2;
+    
+    // Send formatted distance with position
+    Serial.print("DIST:");
+    if (servoAngle < 60) {
+      Serial.print("L");
+    } else if (servoAngle > 120) {
+      Serial.print("R");
+    } else {
+      Serial.print("C");
+    }
+    Serial.print(servoAngle);
+    Serial.print(":");
+    Serial.println(distance);
   }
-  
-  // Measure and send distance with position
-  digitalWrite(TRIG_PIN, LOW);
-  delayMicroseconds(2);
-  digitalWrite(TRIG_PIN, HIGH);
-  delayMicroseconds(10);
-  digitalWrite(TRIG_PIN, LOW);
-  
-  long duration = pulseIn(ECHO_PIN, HIGH, 30000);
-  long distance = duration * 0.034 / 2;
-  
-  // Send formatted distance with position
-  Serial.print("DIST:");
-  if (servoAngle < 60) {
-    Serial.print("L");
-  } else if (servoAngle > 120) {
-    Serial.print("R");
-  } else {
-    Serial.print("C");
-  }
-  Serial.print(servoAngle);
-  Serial.print(":");
-  Serial.println(distance);
 }
