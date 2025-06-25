@@ -7,7 +7,8 @@ from collections import deque
 
 class DQN(nn.Module):
     """Deep Q-Network"""
-    def __init__(self, input_size=4, hidden_size=128, output_size=9):
+    # changed to 8 so that it would allow no back this should be fixed as it can get trapped more easily
+    def __init__(self, input_size=4, hidden_size=128, output_size=8):
         super(DQN, self).__init__()
         self.fc1 = nn.Linear(input_size, hidden_size)
         self.fc2 = nn.Linear(hidden_size, hidden_size)
@@ -21,8 +22,8 @@ class DQN(nn.Module):
 
 class DQNAgent:
     """DQN Agent for Arduino car control"""
-    
-    def __init__(self, state_size=4, action_size=9, lr=0.001):
+    # changed to 8 so that it would allow no back this should be fixed as it can get trapped more easily
+    def __init__(self, state_size=4, action_size=8, lr=0.001):
         self.state_size = state_size
         self.action_size = action_size
         self.memory = deque(maxlen=10000)

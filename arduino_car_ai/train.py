@@ -7,9 +7,9 @@ import os
 def train_agent(episodes=500, render_interval=50):
     """Train the DQN agent"""
     
-    # Create environment and agent
+    # Create environment and agent turned to 8 again so that i need to figure out how to give it the back button without the backwards to avoid trapping
     env = CarSimulatorEnv(render=False)
-    agent = DQNAgent(state_size=4, action_size=9, lr=0.001)
+    agent = DQNAgent(state_size=4, action_size=8, lr=0.001)
     
     # Training metrics
     scores = []
