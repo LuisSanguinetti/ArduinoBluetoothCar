@@ -1,0 +1,5 @@
+numpy>=1.26.0
+torch>=2.0.1
+pygame>=2.5.0
+pyserial>=3.5
+matplotlib>=3.7.1
