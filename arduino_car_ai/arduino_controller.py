@@ -42,31 +42,44 @@ class ArduinoAIController:
         """Find and connect to Arduino via Bluetooth"""
         ports = serial.tools.list_ports.comports()
         
-        for port in ports:
-            if "HC-06" in port.description or "Bluetooth" in port.description:
-                try:
-                    self.serial_port = serial.Serial(port.device, 9600, timeout=0.1)
-                    time.sleep(2)
-                    self.connected = True
-                    print(f"✅ Connected to Arduino on {port.device}")
-                    return True
-                except Exception as e:
-                    print(f"Failed to connect to {port.device}: {e}")
-                    
-        print("❌ No Arduino found. Available ports:")
+        print("\n🔍 Available ports:")
         for i, port in enumerate(ports):
             print(f"{i}: {port.device} - {port.description}")
+        
+        print("\n⚠️  Auto-detect often fails. Manual selection recommended!")
+        
+        # Manual selection
+        choice = input("\nSelect port number (or 'q' to quit): ")
+        if choice.lower() == 'q':
+            return False
             
-        choice = input("Select port number: ")
         try:
             port = ports[int(choice)]
-            self.serial_port = serial.Serial(port.device, 9600, timeout=0.1)
+            print(f"\nTrying to connect to {port.device}...")
+            
+            self.serial_port = serial.Serial(port.device, 9600, timeout=1)
             time.sleep(2)
-            self.connected = True
-            print(f"✅ Connected to Arduino on {port.device}")
-            return True
-        except:
-            print("❌ Connection failed")
+            
+            # Test connection by sending a command and waiting for response
+            print("Testing connection...")
+            self.serial_port.write(b'M')  # Send measure command
+            time.sleep(0.5)
+            
+            # Check if we get any response
+            if self.serial_port.in_waiting > 0:
+                response = self.serial_port.read_all().decode('utf-8', errors='ignore')
+                print(f"✅ Got response: {response[:50]}...")
+                self.connected = True
+                return True
+            else:
+                print("❌ No response from Arduino")
+                self.serial_port.close()
+                return False
+                
+        except Exception as e:
+            print(f"❌ Connection failed: {e}")
+            if self.serial_port and self.serial_port.is_open:
+                self.serial_port.close()
             return False
     
     def read_serial_data(self):
@@ -157,9 +170,14 @@ class ArduinoAIController:
     def start(self):
         """Start the AI controller"""
         # Connect to Arduino
-        if not self.find_and_connect():
-            print("Failed to connect to Arduino. Exiting.")
-            return
+        while True:
+            if self.find_and_connect():
+                break
+            
+            retry = input("\nRetry connection? (y/n): ")
+            if retry.lower() != 'y':
+                print("Exiting.")
+                return
             
         # Start serial reading thread
         serial_thread = threading.Thread(target=self.read_serial_data, daemon=True)

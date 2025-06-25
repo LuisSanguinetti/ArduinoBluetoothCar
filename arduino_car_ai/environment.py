@@ -15,19 +15,29 @@ class CarSimulatorEnv:
         self.max_speed = 5
         self.min_speed = 1
         
+        # Initialize pygame components
+        self.screen = None
+        self.clock = None
+        self.font = None
+        
         # Initialize pygame if rendering
         if self.render_mode:
-            pygame.init()
-            self.screen = pygame.display.set_mode((self.width, self.height))
-            pygame.display.set_caption("Arduino Car Simulator")
-            self.clock = pygame.time.Clock()
-            self.font = pygame.font.Font(None, 36)
+            self.init_pygame()
         
         # Obstacles
         self.obstacles = []
         self.generate_obstacles()
         
         self.reset()
+    
+    def init_pygame(self):
+        """Initialize pygame components"""
+        if not pygame.get_init():
+            pygame.init()
+        self.screen = pygame.display.set_mode((self.width, self.height))
+        pygame.display.set_caption("Arduino Car Simulator")
+        self.clock = pygame.time.Clock()
+        self.font = pygame.font.Font(None, 36)
         
     def generate_obstacles(self):
         """Generate random obstacles in the environment"""
@@ -102,6 +112,10 @@ class CarSimulatorEnv:
         """Execute action and return new state, reward, done"""
         self.steps += 1
         old_x, old_y = self.car_x, self.car_y
+        
+        # Check if we need to initialize pygame (when switching render modes)
+        if self.render_mode and self.screen is None:
+            self.init_pygame()
         
         # Map action to command
         # Actions: 0=Forward, 1=Left, 2=Right, 3=Backward, 4-8=Speed 1-5
@@ -194,7 +208,7 @@ class CarSimulatorEnv:
     
     def render(self):
         """Render the environment"""
-        if not self.render_mode:
+        if not self.render_mode or self.screen is None:
             return
             
         self.screen.fill((240, 240, 240))
