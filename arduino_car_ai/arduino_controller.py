@@ -16,7 +16,7 @@ class ArduinoAIController:
         self.connected = False
         
         # AI Agent
-        self.agent = DQNAgent(state_size=4, action_size=9)
+        self.agent = DQNAgent(state_size=4, action_size=8) # reduced to 9 so that backwards its ignored
         self.agent.load(model_path)
         self.agent.epsilon = 0  # No exploration during deployment
         
@@ -30,7 +30,7 @@ class ArduinoAIController:
             0: 'W',  # Forward
             1: 'A',  # Rotate Left
             2: 'D',  # Rotate Right
-            3: 'S',  # Backward
+            # 3: 'S',  # Backward erased for now to use when adding extra sensors the car decided if it cant sense a crash it did not crash
             4: '1',  # Speed 1
             5: '2',  # Speed 2
             6: '3',  # Speed 3
@@ -152,8 +152,8 @@ class ArduinoAIController:
                     # Send command
                     self.send_command(command)
                     
-                    # Display status
-                    action_name = ['Forward', 'Left', 'Right', 'Backward', 
+                    # Display status deleted backwards for now
+                    action_name = ['Forward', 'Left', 'Right', 
                                  'Speed1', 'Speed2', 'Speed3', 'Speed4', 'Speed5'][action]
                     print(f"\rDistances - L:{self.distances['L']:3d} "
                           f"C:{self.distances['C']:3d} R:{self.distances['R']:3d} | "

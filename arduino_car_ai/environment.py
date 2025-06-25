@@ -127,10 +127,10 @@ class CarSimulatorEnv:
         elif action == 2:  # Rotate Right  
             self.car_angle += 0.1
             self.car_velocity = 0.5 * self.car_speed
-        elif action == 3:  # Backward
-            self.car_velocity = -1.5 * self.car_speed
-        elif action >= 4 and action <= 8:  # Speed change
-            self.car_speed = action - 3
+        # elif action == 3:  # Backward changed to otherr numbers so that backwards stops used
+        #    self.car_velocity = -1.5 * self.car_speed
+        elif action >= 3 and action <= 7:  # Speed change
+            self.car_speed = action - 2
             self.car_velocity = 1 * self.car_speed
         
         # Update position
