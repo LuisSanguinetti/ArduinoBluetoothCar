@@ -1,7 +1,7 @@
 # ArduinoBluetoothCar
 my man read the fucking name its clear
 # if not clear enough 
-car goes brum brum 
+car goes brum brum...
 well no its electric but you get the gist of it 
 
 # if a real explanation is required my project can be break down in 3 parts
