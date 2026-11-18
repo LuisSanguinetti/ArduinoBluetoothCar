@@ -1,5 +1,5 @@
 # ArduinoBluetoothCar
-my man read the fucking name its clear
+basic arduino car with self driving system, wich latest generation is not the best 
 # if not clear enough 
 car goes brum brum...
 well no its electric but you get the gist of it 
